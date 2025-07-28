@@ -1,0 +1,13 @@
+{
+  "export": true,
+  "guid": "d50c19e8-dfb3-4704-bcd5-85ec62303113",
+  "id": "assisttemplateProjectileHitboxStats",
+  "language": "",
+  "pluginMetadata": {
+  },
+  "plugins": [
+  ],
+  "tags": [
+  ],
+  "version": 1
+}

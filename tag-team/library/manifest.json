@@ -1,0 +1,40 @@
+{
+  "resourceId": "assisttemplate",
+  "content": [{
+    "id": "assisttemplate",
+    "name": "Assist Template",
+    "description": "An example assist character for Fraymakers.",
+    "type": "assist",
+    "objectStatsId": "assisttemplateAssistObjectStats",
+    "animationStatsId": "assisttemplateAnimationStats",
+    "hitboxStatsId": "assisttemplateHitboxStats",
+    "scriptId": "assisttemplateScript",
+    "costumesId": "assisttemplateCostumes",
+    "metadata": {
+      "ui":{
+        "entityId":"menu",
+        "render":{
+          "animation":"assist_full",
+          "animation_icon_no_palette":"assist_css"
+        },
+        "hud":{
+          "animation":"assist_hud"
+        },
+        "css":{
+          "animation":"assist_css",
+          "info":{
+            "game":"Fraymakers",
+            "description":"My first assist character."
+          }
+        }
+      }
+    }
+  },{
+    "id": "assisttemplateProjectile",
+    "type": "projectile",
+    "objectStatsId": "assisttemplateProjectileObjectStats",
+    "animationStatsId": "assisttemplateProjectileAnimationStats",
+    "hitboxStatsId": "assisttemplateProjectileHitboxStats",
+    "scriptId": "assisttemplateProjectileScript"
+  }]
+}
