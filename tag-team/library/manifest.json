@@ -10,6 +10,7 @@
     "hitboxStatsId": "assisttemplateHitboxStats",
     "scriptId": "assisttemplateScript",
     "costumesId": "assisttemplateCostumes",
+    "assistControllerId": "myAssistController",
     "metadata": {
       "ui":{
         "entityId":"menu",
@@ -29,12 +30,19 @@
         }
       }
     }
-  },{
+  },
+  {
     "id": "assisttemplateProjectile",
     "type": "projectile",
     "objectStatsId": "assisttemplateProjectileObjectStats",
     "animationStatsId": "assisttemplateProjectileAnimationStats",
     "hitboxStatsId": "assisttemplateProjectileHitboxStats",
     "scriptId": "assisttemplateProjectileScript"
-  }]
+  },
+  {
+    "id": "myAssistController",
+    "type": "assistController",
+    "scriptId": "assistControllerScript"
+  }
+  ]
 }
