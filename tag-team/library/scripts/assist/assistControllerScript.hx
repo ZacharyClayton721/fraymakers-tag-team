@@ -62,21 +62,38 @@ function tagTeamMember() {
     teamMember.toState(CState.JUMP_OUT);
     camera.addTarget(teamMember);
     teamMember.playAnimation('aerial_neutral');
-    if (teamMember.isFacingLeft()) {
-        teamMember.setX(activeMember.getX() + 150);
-        teamMember.setY(activeMember.getY() - 150);
-        flyInTimer = teamMember.addTimer(1,30,function() {
-            teamMember.setXVelocity(-8);
-            teamMember.setYVelocity(8);
-        }, {persistent: true});
-    } else {
-        teamMember.setX(activeMember.getX() - 150);
-        teamMember.setY(activeMember.getY() - 150);
-        flyInTimer = teamMember.addTimer(1,30,function() {
-            teamMember.setXVelocity(8);
-            teamMember.setYVelocity(8);
-        }, {persistent: true});
-    }
+
+    var hitboxFrame = null;
+    
+    var offsetX = teamMember.isFacingLeft() ? 150 : -150;
+    var velocityX = teamMember.isFacingLeft() ? -8 : 8;
+
+    teamMember.setX(activeMember.getX() + offsetX);
+    teamMember.setY(activeMember.getY() - 150);
+
+    flyInTimer = teamMember.addTimer(1, 30, function() {
+        teamMember.setXVelocity(velocityX);
+        teamMember.setYVelocity(8);
+
+        var currentHitboxes = teamMember.getCollisionBoxes(CollisionBoxType.HIT);
+        if (currentHitboxes != null) {
+            if (hitboxFrame == null) {
+                hitboxFrame = teamMember.getCurrentFrame();
+                hitboxes = currentHitboxes;
+                for (i in 0...hitboxes.length) {
+                    teamMember.updateHitboxStats(i, {
+                        damage: 10,
+                        angle: 90,
+                        baseKnockback: 105,
+                        knockbackGrowth: 0,
+                        hitstun: 60,
+                        directionalInfluence: false
+                    });
+                }
+            }
+            teamMember.playFrame(hitboxFrame);
+        }
+    }, {persistent: true});
 
     flyInLand = teamMember.addEventListener(GameObjectEvent.LAND,function() {
         teamMember.removeTimer(flyInTimer);
