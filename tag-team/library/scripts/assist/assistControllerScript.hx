@@ -2,6 +2,7 @@
 var player:Character = null;
 var team:Array = [];
 var teamMember:Character = null;
+var activeMember:Character = null;
 var initialRun = false;
 
 // Timers
@@ -32,6 +33,7 @@ function createTeamMembers() {
 }
 
 function setupTeam() {
+    activeMember = team[0];
     teamMember = team[1];
 
     //teamMember.setAlpha(0);
@@ -48,6 +50,13 @@ function getTeam() {
 }
 
 function tagTeamMember() {
+
+    // Make sure teamMember faces the same direction on tag-in
+    if (activeMember.isFacingLeft()) {
+        teamMember.faceLeft();
+    } else {
+        teamMember.faceRight();
+    }
     teamMember.removeTimer(disabledTimer);
     // teamMember.setState(CState.AERIAL_NEUTRAL);
     teamMember.toState(CState.JUMP_OUT);
@@ -65,7 +74,6 @@ function tagTeamMember() {
         teamMember.removeTimer(flyInTimer);
         teamMember.setYVelocity(0);
         teamMember.setXVelocity(0);
-        Engine.log('landed');
         teamMember.toState(CState.EMOTE);
         teamMember.playAnimation('emote');
 
