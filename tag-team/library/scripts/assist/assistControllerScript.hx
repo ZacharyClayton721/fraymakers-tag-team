@@ -62,14 +62,22 @@ function tagTeamMember() {
     teamMember.toState(CState.JUMP_OUT);
     camera.addTarget(teamMember);
     teamMember.playAnimation('aerial_neutral');
-    teamMember.setX(team[0].getX() - 150);
-    teamMember.setY(team[0].getY() - 150);
-    flyInTimer = teamMember.addTimer(1,30,function() {
-        teamMember.setXVelocity(8);
-        teamMember.setYVelocity(8);
-    }, {persistent: true});
+    if (teamMember.isFacingLeft()) {
+        teamMember.setX(activeMember.getX() + 150);
+        teamMember.setY(activeMember.getY() - 150);
+        flyInTimer = teamMember.addTimer(1,30,function() {
+            teamMember.setXVelocity(-8);
+            teamMember.setYVelocity(8);
+        }, {persistent: true});
+    } else {
+        teamMember.setX(activeMember.getX() - 150);
+        teamMember.setY(activeMember.getY() - 150);
+        flyInTimer = teamMember.addTimer(1,30,function() {
+            teamMember.setXVelocity(8);
+            teamMember.setYVelocity(8);
+        }, {persistent: true});
+    }
 
-    
     flyInLand = teamMember.addEventListener(GameObjectEvent.LAND,function() {
         teamMember.removeTimer(flyInTimer);
         teamMember.setYVelocity(0);
