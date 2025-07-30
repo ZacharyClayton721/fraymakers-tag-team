@@ -29,5 +29,5 @@ STATE_OUTRO = 4;
 	],
 	gravity: 0,
 	terminalVelocity: 20,
-	assistChargeValue:50
+	assistChargeValue:1
 }

@@ -1,11 +1,10 @@
 {
   "export": true,
-  "guid": "3fe62584-b33a-417b-85c1-355ce49f1f3d",
-  "id": "assisttemplateScript",
-  "language": "hscript",
+  "guid": "a71d5c6b-1f71-4e4f-819f-0386b29f3c80",
+  "id": "assistControllerScript",
+  "language": "",
   "pluginMetadata": {
     "com.fraymakers.FraymakersMetadata": {
-      "objectType": "ASSIST",
       "version": "0.3.0"
     }
   },
