@@ -8,9 +8,20 @@ var initialRun = false;
 // Timers
 var disabledTimer = null;
 var flyInTimer = null;
+var flyOutTimer = null;
+var assistAnimTimer = null;
+
+// Timer Tracking Variables
+var flyOutI = 0;
+var assistAnimI = 0;
 
 // Event Listeners
 var flyInLand = null;
+
+// Content Specific Things`
+var baseCast = ['octodad','commandervideo','welltaro','thewatcher','orcane','fishbunjin'];
+// Used to check if baseCast or not
+// baseCast.indexOf(activeMember.getPlayerConfig().character.contentId) != -1
 
 function initialize() {
     Engine.log('We here');
@@ -105,7 +116,52 @@ function tagTeamMember() {
         teamMember.removeEventListener(GameObjectEvent.LAND, flyInLand);
     }, {persistent: true});
 
+    tagOut();
 
+
+}
+
+function getViewPort() {
+    var vw_width = camera.getViewportWidth();
+    var vw_height = camera.getViewportHeight();
+    var vw_x = camera.getX() - vw_width/2;
+    var vw_y = camera.getY() - vw_height/2;
+
+    return new Rectangle(vw_x, vw_y, vw_width, vw_height);
+}
+
+function tagOut() {
+    activeMember.updateGameObjectStats({solid:false});
+    activeMember.toState(CState.UNINITIALIZED,'assist_call');
+    camera.deleteTarget(activeMember);
+    assistAnimI = 0;
+    assistAnimTimer = activeMember.addTimer(1,0,function() {
+
+        if (activeMember.finalFramePlayed()) {
+            activeMember.playFrame(activeMember.getCurrentFrame());
+        } else if (assistAnimI == 20) {
+
+            activeMember.playFrame(assistAnimI);
+            activeMember.toState(CState.UNINITIALIZED,'jump_in');
+            flyOutTimer = activeMember.addTimer(1,30, function() {
+
+                var viewport = getViewPort();
+
+                if (!viewport.contains(activeMember.getX(), activeMember.getY())) {
+                    activeMember.setAlpha(0);
+                    activeMember.toState(CState.DISABLED);
+                }
+                activeMember.setXVelocity(-20);
+                activeMember.setYVelocity(-10);
+            }, {persistent: true});
+            activeMember.removeTimer(assistAnimTimer);
+
+        } 
+
+        assistAnimI ++;
+
+        
+    }, {persistent: true});
 }
 
 function update() {
