@@ -30,15 +30,10 @@ function initialize() {
 
 function createTeamMembers() {
     for (c in match.getPlayers()) {
-        Engine.log(c);
-        if (player.getUid() == c.getUid()) {
-            Engine.log('This me');
+        if (player == c) {
             team.push(player);
-        } else {
-            if (c.getTeam() == player.getTeam()) {
-                Engine.log('Teammate found');
-                team.push(c);
-            }
+        } else if (c.getTeam() == player.getTeam()) {
+            team.push(c);
         }
     }
 }
