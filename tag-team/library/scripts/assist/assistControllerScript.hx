@@ -106,7 +106,7 @@ function tagTeamMember() {
         teamMember.setYVelocity(0);
         teamMember.setXVelocity(0);
         teamMember.toState(CState.EMOTE);
-        teamMember.playAnimation('emote');
+        teamMember.playAnimation('assist_call');
 
         teamMember.removeEventListener(GameObjectEvent.LAND, flyInLand);
     }, {persistent: true});
@@ -146,7 +146,11 @@ function tagOut() {
                     activeMember.setAlpha(0);
                     activeMember.toState(CState.DISABLED);
                 }
-                activeMember.setXVelocity(-20);
+                if (activeMember.isFacingLeft()) {
+                    activeMember.setXVelocity(20);
+                } else {
+                    activeMember.setXVelocity(-20);
+                }
                 activeMember.setYVelocity(-10);
             }, {persistent: true});
             activeMember.removeTimer(assistAnimTimer);
