@@ -11,6 +11,10 @@ var flyInTimer = null;
 var flyOutTimer = null;
 var assistAnimTimer = null;
 var foeHitTimer = null;
+var tagActionWait = null;
+
+// Event Listeners
+var taggedFoeHit = null;
 
 // Timer Tracking Variables
 var flyOutI = 0;
@@ -118,7 +122,13 @@ function tagTeamMember() {
         teamMember.setYVelocity(0);
         teamMember.setXVelocity(0);
         teamMember.toState(CState.EMOTE);
-        teamMember.playAnimation('assist_call');
+        teamMember.playAnimation('emote');
+
+        tagActionWait = teamMember.addTimer(30,1,function() {
+            teamMember.updateAnimationStats({interruptible:true});
+            Engine.log('Are we here?');
+            
+        }, {persistent: true});
 
         teamMember.removeEventListener(GameObjectEvent.LAND, flyInLand);
     }, {persistent: true});
@@ -158,12 +168,14 @@ function doHit(foe:Character, direction) {
         currentFrame += 1;
     }, { persistent: true });
 
-    foe.addEventListener(GameObjectEvent.HIT_RECEIVED, function (event:GameObjectEvent) {
-        foe.removeTimer(foeHitTimer);
-        foe.setKnockback(event.foe.getKnockback());
-    }, {persistent:true});
+    foe.addEventListener(GameObjectEvent.HIT_RECEIVED, handleFoeFollowupHit, {persistent: true});
 }
 
+function handleFoeFollowupHit(event:GameObjectEvent) {
+    foe.removeTimer(foeHitTimer);
+    foe.setKnockback(event.foe.getKnockback());
+    foe.removeEventListener(GameObjectEvent.HIT_RECEIVED, handleFoeFollowupHit);
+}
 
 function getViewPort() {
     var vw_width = camera.getViewportWidth();
