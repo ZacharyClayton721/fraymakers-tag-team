@@ -10,6 +10,7 @@ var disabledTimer = null;
 var flyInTimer = null;
 var flyOutTimer = null;
 var assistAnimTimer = null;
+var foeHitTimer = null;
 
 // Timer Tracking Variables
 var flyOutI = 0;
@@ -89,17 +90,28 @@ function tagTeamMember() {
                 for (i in 0...hitboxes.length) {
                     teamMember.updateHitboxStats(i, {
                         damage: 10,
-                        angle: 90,
-                        baseKnockback: 105,
+                        angle: 75,
+                        baseKnockback: 110,
                         knockbackGrowth: 0,
-                        hitstun: 60,
-                        directionalInfluence: false
+                        hitstun: 80,
+                        directionalInfluence: false,
+                        stackKnockback: false
                     });
                 }
             }
             teamMember.playFrame(hitboxFrame);
         }
     }, {persistent: true});
+
+    teamMember.addEventListener(GameObjectEvent.HIT_DEALT, function(event:GameObjectEvent) {
+        var foe = event.data.foe;
+        if (teamMember.isFacingLeft()) {
+            doHit(event.data.foe, 'left');  
+        } else {
+            doHit(event.data.foe, 'right'); 
+        }
+        // foe.updateCharacterStats({gravity:.8,weight: 80});
+    });
 
     flyInLand = teamMember.addEventListener(GameObjectEvent.LAND,function() {
         teamMember.removeTimer(flyInTimer);
@@ -115,6 +127,43 @@ function tagTeamMember() {
 
 
 }
+
+function doHit(foe:Character, direction) {
+    
+    var hangTime = 80;
+    var currentFrame = 0;
+    var startY = foe.getY();
+    var startX = foe.getX();
+    var xDistance = 200;
+    var yPeak = 200;
+
+    foeHitTimer = foe.addTimer(1, hangTime, function() {
+        var t = currentFrame / hangTime; // 0..1 normalized
+
+        // Horizontal motion: linear
+        var xOffset = xDistance * t;
+
+        // Vertical motion: sinusoidal for smooth easing at the peak
+        var yOffset = yPeak * Math.sin(Math.PI * t);
+
+        // Apply positions
+        if (direction == 'left') {
+            foe.setX(startX - xOffset);
+        } else {
+            foe.setX(startX + xOffset);
+        }
+        
+        foe.setY(startY - yOffset);
+
+        currentFrame += 1;
+    }, { persistent: true });
+
+    foe.addEventListener(GameObjectEvent.HIT_RECEIVED, function (event:GameObjectEvent) {
+        foe.removeTimer(foeHitTimer);
+        foe.setKnockback(event.foe.getKnockback());
+    }, {persistent:true});
+}
+
 
 function getViewPort() {
     var vw_width = camera.getViewportWidth();
