@@ -4,6 +4,7 @@ var team:Array = [];
 var teamMember:Character = null;
 var activeMember:Character = null;
 var initialRun = false;
+var hitFoe:Character = null;
 
 // Timers
 var disabledTimer = null;
@@ -107,14 +108,13 @@ function tagTeamMember() {
         }
     }, {persistent: true});
 
-    teamMember.addEventListener(GameObjectEvent.HIT_DEALT, function(event:GameObjectEvent) {
-        var foe = event.data.foe;
+    tagInHit = teamMember.addEventListener(GameObjectEvent.HIT_DEALT, function(event:GameObjectEvent) {
+        hitFoe = event.data.foe;
         if (teamMember.isFacingLeft()) {
             doHit(event.data.foe, 'left');  
         } else {
             doHit(event.data.foe, 'right'); 
         }
-        // foe.updateCharacterStats({gravity:.8,weight: 80});
     });
 
     flyInLand = teamMember.addEventListener(GameObjectEvent.LAND,function() {
@@ -124,9 +124,8 @@ function tagTeamMember() {
         teamMember.toState(CState.EMOTE);
         teamMember.playAnimation('emote');
 
-        tagActionWait = teamMember.addTimer(30,1,function() {
+        tagActionWait = teamMember.addTimer(20,1,function() {
             teamMember.updateAnimationStats({interruptible:true});
-            Engine.log('Are we here?');
             
         }, {persistent: true});
 
@@ -168,13 +167,11 @@ function doHit(foe:Character, direction) {
         currentFrame += 1;
     }, { persistent: true });
 
-    foe.addEventListener(GameObjectEvent.HIT_RECEIVED, handleFoeFollowupHit, {persistent: true});
-}
+    hitFoe.addEventListener(GameObjectEvent.ENTER_HITSTOP, handleFoeFollowupHit, {persistent: true});
 
 function handleFoeFollowupHit(event:GameObjectEvent) {
-    foe.removeTimer(foeHitTimer);
-    foe.setKnockback(event.foe.getKnockback());
-    foe.removeEventListener(GameObjectEvent.HIT_RECEIVED, handleFoeFollowupHit);
+    hitFoe.removeTimer(foeHitTimer);
+    hitFoe.removeEventListener(GameObjectEvent.ENTER_HITSTOP, handleFoeFollowupHit);
 }
 
 function getViewPort() {
