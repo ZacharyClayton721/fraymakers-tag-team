@@ -48,7 +48,7 @@ function setupTeam() {
     activeMember = team[0];
     teamMember = team[1];
 
-    //teamMember.setAlpha(0);
+    teamMember.setAlpha(0);
     camera.deleteTarget(teamMember);
     // Disable team member until needed
     disabledTimer = teamMember.addTimer(1,0, function() {
@@ -62,6 +62,7 @@ function getTeam() {
 }
 
 function tagTeamMember() {
+    teamMember.setAlpha(1);
 
     // Make sure teamMember faces the same direction on tag-in
     if (activeMember.isFacingLeft()) {
@@ -168,6 +169,8 @@ function doHit(foe:Character, direction) {
     }, { persistent: true });
 
     hitFoe.addEventListener(GameObjectEvent.ENTER_HITSTOP, handleFoeFollowupHit, {persistent: true});
+   
+}
 
 function handleFoeFollowupHit(event:GameObjectEvent) {
     hitFoe.removeTimer(foeHitTimer);
@@ -230,6 +233,13 @@ function update() {
         initialRun = true;
     }
 
+    if (initialRun == true) {
+        if (activeMember.getPressedControls().ACTION) {
+            tagTeamMember();
+        }
+    }
+
+    player.setAssistCharge(0);
 }
 
 function onTeardown() {
