@@ -4,12 +4,18 @@ var team:Array = [];
 var teamMember:Character = null;
 var activeMember:Character = null;
 var initialRun = false;
+var hitFoe:Character = null;
 
 // Timers
 var disabledTimer = null;
 var flyInTimer = null;
 var flyOutTimer = null;
 var assistAnimTimer = null;
+var foeHitTimer = null;
+var tagActionWait = null;
+
+// Event Listeners
+var taggedFoeHit = null;
 
 // Timer Tracking Variables
 var flyOutI = 0;
@@ -89,17 +95,27 @@ function tagTeamMember() {
                 for (i in 0...hitboxes.length) {
                     teamMember.updateHitboxStats(i, {
                         damage: 10,
-                        angle: 90,
-                        baseKnockback: 105,
+                        angle: 75,
+                        baseKnockback: 110,
                         knockbackGrowth: 0,
-                        hitstun: 60,
-                        directionalInfluence: false
+                        hitstun: 80,
+                        directionalInfluence: false,
+                        stackKnockback: false
                     });
                 }
             }
             teamMember.playFrame(hitboxFrame);
         }
     }, {persistent: true});
+
+    tagInHit = teamMember.addEventListener(GameObjectEvent.HIT_DEALT, function(event:GameObjectEvent) {
+        hitFoe = event.data.foe;
+        if (teamMember.isFacingLeft()) {
+            doHit(event.data.foe, 'left');  
+        } else {
+            doHit(event.data.foe, 'right'); 
+        }
+    });
 
     flyInLand = teamMember.addEventListener(GameObjectEvent.LAND,function() {
         teamMember.removeTimer(flyInTimer);
@@ -108,12 +124,54 @@ function tagTeamMember() {
         teamMember.toState(CState.EMOTE);
         teamMember.playAnimation('emote');
 
+        tagActionWait = teamMember.addTimer(20,1,function() {
+            teamMember.updateAnimationStats({interruptible:true});
+            
+        }, {persistent: true});
+
         teamMember.removeEventListener(GameObjectEvent.LAND, flyInLand);
     }, {persistent: true});
 
     tagOut();
 
 
+}
+
+function doHit(foe:Character, direction) {
+    
+    var hangTime = 80;
+    var currentFrame = 0;
+    var startY = foe.getY();
+    var startX = foe.getX();
+    var xDistance = 200;
+    var yPeak = 200;
+
+    foeHitTimer = foe.addTimer(1, hangTime, function() {
+        var t = currentFrame / hangTime; // 0..1 normalized
+
+        // Horizontal motion: linear
+        var xOffset = xDistance * t;
+
+        // Vertical motion: sinusoidal for smooth easing at the peak
+        var yOffset = yPeak * Math.sin(Math.PI * t);
+
+        // Apply positions
+        if (direction == 'left') {
+            foe.setX(startX - xOffset);
+        } else {
+            foe.setX(startX + xOffset);
+        }
+        
+        foe.setY(startY - yOffset);
+
+        currentFrame += 1;
+    }, { persistent: true });
+
+    hitFoe.addEventListener(GameObjectEvent.ENTER_HITSTOP, handleFoeFollowupHit, {persistent: true});
+
+function handleFoeFollowupHit(event:GameObjectEvent) {
+    hitFoe.removeTimer(foeHitTimer);
+    hitFoe.removeEventListener(GameObjectEvent.ENTER_HITSTOP, handleFoeFollowupHit);
 }
 
 function getViewPort() {
@@ -146,7 +204,11 @@ function tagOut() {
                     activeMember.setAlpha(0);
                     activeMember.toState(CState.DISABLED);
                 }
-                activeMember.setXVelocity(-20);
+                if (activeMember.isFacingLeft()) {
+                    activeMember.setXVelocity(20);
+                } else {
+                    activeMember.setXVelocity(-20);
+                }
                 activeMember.setYVelocity(-10);
             }, {persistent: true});
             activeMember.removeTimer(assistAnimTimer);
