@@ -3,6 +3,14 @@ var player:Character = null;
 var team:Array = [];
 var teamMember:Character = null;
 var activeMember:Character = null;
+var TagState = {
+    ACTIVE: "ACTIVE",
+    STANDBY: "STANDBY",
+    TAGGING_IN: "TAGGING_IN",
+    TAGGING_OUT: "TAGGING_OUT",
+    DISABLED: "DISABLED"
+};
+var teamStates = [];
 var initialRun = false;
 var hitFoe:Character = null;
 
@@ -45,14 +53,14 @@ function createTeamMembers() {
 }
 
 function setupTeam() {
-    activeMember = team[0];
-    teamMember = team[1];
+    teamStates[0] = TagState.ACTIVE;
+    teamStates[1] = TagState.STANDBY;
 
-    teamMember.setAlpha(0);
-    camera.deleteTarget(teamMember);
+    team[1].setAlpha(0);
+    camera.deleteTarget(team[1]);
     // Disable team member until needed
-    disabledTimer = teamMember.addTimer(1,0, function() {
-        teamMember.setState(CState.DISABLED);
+    disabledTimer = team[1].addTimer(1,0, function() {
+        team[1].setState(CState.DISABLED);
     }, {persistent:true});
     
 }
@@ -62,39 +70,48 @@ function getTeam() {
 }
 
 function tagTeamMember() {
-    teamMember.setAlpha(1);
+    Engine.log('We tagging');
+    var activeIndex = getActiveMemberIndex();
+    var standbyIndex = getStandbyMemberIndex();
 
-    // Make sure teamMember faces the same direction on tag-in
-    if (activeMember.isFacingLeft()) {
-        teamMember.faceLeft();
-    } else {
-        teamMember.faceRight();
-    }
-    teamMember.removeTimer(disabledTimer);
-    // teamMember.setState(CState.AERIAL_NEUTRAL);
-    teamMember.toState(CState.JUMP_OUT);
-    camera.addTarget(teamMember);
-    teamMember.playAnimation('aerial_neutral');
+    if (activeIndex == -1 || standbyIndex == -1) return;
+
+    var active = team[activeIndex];
+    var standby = team[standbyIndex];
 
     var hitboxFrame = null;
-    
-    var offsetX = teamMember.isFacingLeft() ? 150 : -150;
-    var velocityX = teamMember.isFacingLeft() ? -8 : 8;
 
-    teamMember.setX(activeMember.getX() + offsetX);
-    teamMember.setY(activeMember.getY() - 150);
+    teamStates[activeIndex] = TagState.TAGGING_OUT;
+    teamStates[standbyIndex] = TagState.TAGGING_IN;
 
-    flyInTimer = teamMember.addTimer(1, 30, function() {
-        teamMember.setXVelocity(velocityX);
-        teamMember.setYVelocity(8);
+    standby.setAlpha(1);
+    if (active.isFacingLeft()) standby.faceLeft(); else standby.faceRight();
 
-        var currentHitboxes = teamMember.getCollisionBoxes(CollisionBoxType.HIT);
+    standby.removeTimer(disabledTimer);
+    standby.toState(CState.JUMP_OUT);
+    camera.addTarget(standby);
+    standby.playAnimation('aerial_neutral');
+
+    var offsetX = standby.isFacingLeft() ? 150 : -150;
+    var velocityX = standby.isFacingLeft() ? -8 : 8;
+
+    standby.setX(active.getX() + offsetX);
+    standby.setY(active.getY() - 150);
+
+    // Fly In
+    flyInTimer = standby.addTimer(1, 30, function() {
+        standby.setXVelocity(velocityX);
+        standby.setYVelocity(8);
+
+        var currentHitboxes = standby.getCollisionBoxes(CollisionBoxType.HIT);
+        Engine.log(currentHitboxes);
         if (currentHitboxes != null) {
             if (hitboxFrame == null) {
-                hitboxFrame = teamMember.getCurrentFrame();
+                Engine.log('We here');
+                hitboxFrame = standby.getCurrentFrame();
                 hitboxes = currentHitboxes;
                 for (i in 0...hitboxes.length) {
-                    teamMember.updateHitboxStats(i, {
+                    standby.updateHitboxStats(i, {
                         damage: 10,
                         angle: 75,
                         baseKnockback: 110,
@@ -105,37 +122,26 @@ function tagTeamMember() {
                     });
                 }
             }
-            teamMember.playFrame(hitboxFrame);
+            standby.playFrame(hitboxFrame);
         }
-    }, {persistent: true});
+    }, { persistent: true });
 
-    tagInHit = teamMember.addEventListener(GameObjectEvent.HIT_DEALT, function(event:GameObjectEvent) {
-        hitFoe = event.data.foe;
-        if (teamMember.isFacingLeft()) {
-            doHit(event.data.foe, 'left');  
-        } else {
-            doHit(event.data.foe, 'right'); 
-        }
-    });
+    flyInLand = standby.addEventListener(GameObjectEvent.LAND, function() {
+        standby.removeTimer(flyInTimer);
+        standby.setYVelocity(0);
+        standby.setXVelocity(0);
+        standby.toState(CState.EMOTE);
+        standby.playAnimation('emote');
 
-    flyInLand = teamMember.addEventListener(GameObjectEvent.LAND,function() {
-        teamMember.removeTimer(flyInTimer);
-        teamMember.setYVelocity(0);
-        teamMember.setXVelocity(0);
-        teamMember.toState(CState.EMOTE);
-        teamMember.playAnimation('emote');
+        standby.addTimer(20, 1, function() {
+            standby.updateAnimationStats({ interruptible: true });
+            teamStates[standbyIndex] = TagState.ACTIVE;
+        }, { persistent: true });
 
-        tagActionWait = teamMember.addTimer(20,1,function() {
-            teamMember.updateAnimationStats({interruptible:true});
-            
-        }, {persistent: true});
+        standby.removeEventListener(GameObjectEvent.LAND, flyInLand);
+    }, { persistent: true });
 
-        teamMember.removeEventListener(GameObjectEvent.LAND, flyInLand);
-    }, {persistent: true});
-
-    tagOut();
-
-
+    tagOut(activeIndex);
 }
 
 function doHit(foe:Character, direction) {
@@ -186,42 +192,87 @@ function getViewPort() {
     return new Rectangle(vw_x, vw_y, vw_width, vw_height);
 }
 
-function tagOut() {
-    activeMember.updateGameObjectStats({solid:false});
-    activeMember.toState(CState.UNINITIALIZED,'assist_call');
-    camera.deleteTarget(activeMember);
-    assistAnimI = 0;
-    assistAnimTimer = activeMember.addTimer(1,0,function() {
+function tagOut(activeIndex) {
+    var member = team[activeIndex];
+    member.updateGameObjectStats({ solid: false });
+    member.toState(CState.UNINITIALIZED, 'assist_call');
+    camera.deleteTarget(member);
+    teamStates[activeIndex] = TagState.TAGGING_OUT;
 
-        if (activeMember.finalFramePlayed()) {
-            activeMember.playFrame(activeMember.getCurrentFrame());
+    var assistAnimI = 0;
+
+    assistAnimTimer = member.addTimer(1, 0, function() {
+        if (member.finalFramePlayed()) {
+            member.playFrame(member.getCurrentFrame());
         } else if (assistAnimI == 20) {
+            member.playFrame(assistAnimI);
+            member.toState(CState.UNINITIALIZED, 'jump_in');
 
-            activeMember.playFrame(assistAnimI);
-            activeMember.toState(CState.UNINITIALIZED,'jump_in');
-            flyOutTimer = activeMember.addTimer(1,30, function() {
-
+            flyOutTimer = member.addTimer(1, 30, function() {
                 var viewport = getViewPort();
 
-                if (!viewport.contains(activeMember.getX(), activeMember.getY())) {
-                    activeMember.setAlpha(0);
-                    activeMember.toState(CState.DISABLED);
+                if (!viewport.contains(member.getX(), member.getY())) {
+                    member.setAlpha(0);
+                    member.toState(CState.DISABLED);
+                    teamStates[activeIndex] = TagState.STANDBY; // back to standby
                 }
-                if (activeMember.isFacingLeft()) {
-                    activeMember.setXVelocity(20);
+
+                if (member.isFacingLeft()) {
+                    member.setXVelocity(20);
                 } else {
-                    activeMember.setXVelocity(-20);
+                    member.setXVelocity(-20);
                 }
-                activeMember.setYVelocity(-10);
-            }, {persistent: true});
-            activeMember.removeTimer(assistAnimTimer);
+                member.setYVelocity(-10);
+            }, { persistent: true });
 
-        } 
+            member.removeTimer(assistAnimTimer);
+        }
 
-        assistAnimI ++;
+        assistAnimI++;
+    }, { persistent: true });
+}
 
-        
-    }, {persistent: true});
+function switchTagVars() {
+    var oldTeamMember= teamMember;
+    var oldActiveMember = activeMember;
+    activeMember = oldTeamMember;
+    teamMember = oldActiveMember;
+}
+
+function getActiveMemberIndex() {
+    for (i in 0...team.length) {
+        if (teamStates[i] == TagState.ACTIVE) return i;
+    }
+    return -1;
+}
+
+function getStandbyMemberIndex() {
+    for (i in 0...team.length) {
+        if (teamStates[i] == TagState.STANDBY) return i;
+    }
+    return -1;
+}
+
+function getActiveMember() {
+    var idx = getActiveMemberIndex();
+    return idx != -1 ? team[idx] : null;
+}
+
+function getStandbyMember() {
+    var idx = getStandbyMemberIndex();
+    return idx != -1 ? team[idx] : null;
+}
+
+function isTagging(index) {
+    var state = teamStates[index];
+    return state == TagState.TAGGING_IN || state == TagState.TAGGING_OUT;
+}
+
+function isAnyTagging() {
+    for (i in 0...teamStates.length) {
+        if (isTagging(i)) return true;
+    }
+    return false;
 }
 
 function update() {
@@ -234,8 +285,11 @@ function update() {
     }
 
     if (initialRun == true) {
-        if (activeMember.getPressedControls().ACTION) {
-            tagTeamMember();
+        if (isAnyTagging() == false) {
+            var active = getActiveMember();
+            if (active.getPressedControls().ACTION) {
+                tagTeamMember();
+            }
         }
     }
 
